@@ -1,0 +1,53 @@
+volumes:
+  postgres_data:
+      driver: local
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: ${APP_NAME}-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - backend
+    restart: always
+
+  frontend:
+    image: ghcr.io/phybyte/mvx-dapp-frontend:${NETWORK}
+    container_name: ${APP_NAME}-frontend
+    restart: always
+    expose:
+      - 80
+
+  backend:
+    image: ghcr.io/phybyte/mvx-dapp-backend:${NETWORK}
+    container_name: ${APP_NAME}-backend
+    restart: always
+    environment:
+      - NETWORK=${NETWORK}
+      - PORT=${BACKEND_PORT}
+      - MAINNET_API=${MAINNET_API}
+      - MAINNET_PROXY=${MAINNET_PROXY}
+      - DEVNET_API=${DEVNET_API}
+      - DEVNET_PROXY=${DEVNET_PROXY}
+      - DATABASE_URL=${DATABASE_URL}
+    ports:
+      - "${BACKEND_PORT}:3000"
+    depends_on: 
+      - db
+
+  db:
+    image: postgres:16
+    container_name: ${APP_NAME}-db
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
